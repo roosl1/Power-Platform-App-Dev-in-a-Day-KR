@@ -1,0 +1,68 @@
+name: Deploy Power Platform Solution
+
+on:
+  workflow_dispatch:
+    inputs:
+      solutionName:
+        description: 'Solution Name'
+        required: true
+        default: 'GPPB'
+      solutionPath:
+        description: 'Solution Path'
+        required: true
+        default: 'devops-in-a-day/src/PowerPlatform'
+      solutionType:
+        description: 'Solution Type'
+        required: true
+        default: 'Unmanaged'
+
+# ⬆️ 이벤트 트리거 조건을 설정합니다.
+env:
+  ENVIRONMENT_URL: ${{ secrets.ENVIRONMENT_URL }}
+  APPLICATION_ID: ${{ secrets.APPLICATION_ID }}
+  CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+  DIRECTORY_ID: ${{ secrets.DIRECTORY_ID }}
+
+# ⬆️ 환경 변수를 설정합니다.
+jobs:
+  deploy_solution:
+    runs-on: ubuntu-latest
+
+    # ⬆️ 빌드 서버를 설정합니다.
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ⬆️ 리포지토리 체크아웃 액션
+      - name: Install Power Platform Tools
+        uses: microsoft/powerplatform-actions/actions-install@v1
+
+      # ⬆️ 파워 플랫폼 CLI 설치 액션
+      - name: Who am I?
+        uses: microsoft/powerplatform-actions/who-am-i@v1
+        with:
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.APPLICATION_ID }}
+          client-secret: ${{ env.CLIENT_SECRET }}
+          tenant-id: ${{ env.DIRECTORY_ID }}
+
+      # ⬆️ 현재 작업할 파워 플랫폼 환경 체크 액션
+      - name: Pack solution
+        uses: microsoft/powerplatform-actions/pack-solution@v1
+        with:
+          solution-file: ${{ github.event.inputs.solutionPath }}/${{ github.event.inputs.solutionName }}.zip
+          solution-folder: ${{ github.event.inputs.solutionPath }}/${{ github.event.inputs.solutionName }}
+          solution-type: ${{ github.event.inputs.solutionType }}
+
+      # ⬆️ 플랫폼 솔루션 압축 액션
+      - name: Deploy solution
+        uses: microsoft/powerplatform-actions/import-solution@v1
+        with:
+          environment-url: ${{ env.ENVIRONMENT_URL }}
+          app-id: ${{ env.APPLICATION_ID }}
+          client-secret: ${{ env.CLIENT_SECRET }}
+          tenant-id: ${{ env.DIRECTORY_ID }}
+          solution-file: ${{ github.event.inputs.solutionPath }}/${{ github.event.inputs.solutionName }}.zip
+          force-overwrite: true
+
+      # ⬆️ 파워 플랫폼 솔루션 배포 액션
